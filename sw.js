@@ -1,13 +1,14 @@
 // Service worker: deixa o app abrir sem internet.
 // Ao publicar uma versão nova, aumente o número em VERSION para o celular baixar os arquivos novos.
-const VERSION = "fichario-v6";
+const VERSION = "fichario-v7";
 const SHELL = [
   "./", "index.html", "styles.css", "app.js", "config.js", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png",
 ];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // cache: "reload" ignora o cache HTTP do navegador, senão a versão nova pode guardar arquivos antigos
+  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", e => {

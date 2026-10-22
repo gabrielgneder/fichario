@@ -3,7 +3,7 @@
  * Sincronização: mescla por receita usando updatedAt; exclusões viram "lápides" para não ressuscitar receitas. */
 "use strict";
 
-const APP_VERSION = "1.4.0";
+const APP_VERSION = "1.4.1";
 const CFG = Object.assign({ GOOGLE_CLIENT_ID: "", DRIVE_FILE_NAME: "Fichário de Receitas (dados).json" }, window.FICHARIO_CONFIG || {});
 const DRIVE_ON = !!CFG.GOOGLE_CLIENT_ID;
 const SCOPES = "openid email https://www.googleapis.com/auth/drive.file";
@@ -960,5 +960,13 @@ function seedDemo() {
 }
 
 if ("serviceWorker" in navigator && !CFG.DEMO) {
-  addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+  addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(reg => {
+    // o app aberto em segundo plano não recarrega sozinho: procura versão nova ao voltar para ele
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => {}); });
+  }).catch(() => {}));
+  // versão nova assumiu: recarrega para usar os arquivos novos (se não houver nada aberto na tela)
+  let hadController = !!navigator.serviceWorker.controller, pendingReload = false;
+  const reloadNow = () => { if ($(".sheet")) { pendingReload = true; return; } location.reload(); };
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (hadController) reloadNow(); hadController = true; });
+  new MutationObserver(() => { if (pendingReload && !$(".sheet")) location.reload(); }).observe($("#layer"), { childList: true });
 }
