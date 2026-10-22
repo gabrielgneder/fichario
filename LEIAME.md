@@ -130,6 +130,6 @@ Se travar, tire um print da tela de erro e mande para o Gabriel.
 Detalhes técnicos, regras e como atualizar estão em `AGENTS.md`. Resumo:
 
 1. Altere os arquivos no Antigravity.
-2. Em `sw.js`, aumente `VERSION` (`fichario-v4` → `fichario-v5`).
+2. Em `sw.js`, aumente `VERSION` (`fichario-v5` → `fichario-v6`).
 3. Commit e push para o repositório `fichario` no seu GitHub. O GitHub Pages publica sozinho em 1 a 2 minutos.
 4. **Nunca renomeie a conta nem o repositório, e nunca apague o repositório.** O endereço do app mudaria, o app instalado no celular dela pararia de abrir e os dados guardados no celular ficariam presos no endereço antigo (só a cópia do Drive seria recuperável).

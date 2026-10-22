@@ -1,6 +1,6 @@
 // Service worker: deixa o app abrir sem internet.
 // Ao publicar uma versão nova, aumente o número em VERSION para o celular baixar os arquivos novos.
-const VERSION = "fichario-v4";
+const VERSION = "fichario-v5";
 const SHELL = [
   "./", "index.html", "styles.css", "app.js", "config.js", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png",

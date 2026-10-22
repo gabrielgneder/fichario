@@ -8,3 +8,4 @@ node_modules/
 # Local, fora do app
 _backup/
 fichario/
+ROTEIRO-*.txt
