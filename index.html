@@ -31,6 +31,7 @@
         <h1 id="view-title">Receitas</h1>
         <p class="sub" id="count"></p>
         </div>
+        <button class="iconbtn plain" id="cat-edit" aria-label="Editar categoria" hidden><svg class="i" aria-hidden="true"><use href="#i-edit"/></svg></button>
       </div>
       <button class="sync" id="sync" data-state="off" hidden></button>
     </div>
@@ -98,6 +99,29 @@
     <symbol id="c-soup" viewBox="0 0 24 24"><path d="M3 12h18a8 8 0 0 1-8 8h-2a8 8 0 0 1-8-8zM7 21h10M9 4c-.8 1.2-.8 2.8 0 4M13 4c-.8 1.2-.8 2.8 0 4M17 4c-.8 1.2-.8 2.8 0 4"/></symbol>
     <symbol id="c-bread" viewBox="0 0 24 24"><path d="M5 20V11a4 4 0 0 1-1-7.5C5 3 7 3 12 3s7 0 8 .5a4 4 0 0 1-1 7.5v9z"/><path d="M9 9l2 2M13 7l2 2"/></symbol>
     <symbol id="c-book" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></symbol>
+    <symbol id="c-pizza" viewBox="0 0 24 24"><path d="M12 21 3.5 6.5a15 15 0 0 1 17 0z"/><path d="M5.3 9.6a12 12 0 0 1 13.4 0"/><circle cx="10" cy="12.5" r="1"/><circle cx="14" cy="14.5" r="1"/></symbol>
+    <symbol id="c-pasta" viewBox="0 0 24 24"><path d="M3 11h18a9 9 0 0 1-18 0zM8 21h8"/><path d="M14 3 9.5 11M20 4.5 13 11"/></symbol>
+    <symbol id="c-pot" viewBox="0 0 24 24"><path d="M4 10h16v7a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3zM2 10h20M9 7V5.5h6V7M8 7h8"/></symbol>
+    <symbol id="c-grill" viewBox="0 0 24 24"><path d="M4 9h16a8 8 0 0 1-16 0zM8.5 16.5 6 21M15.5 16.5 18 21M9 5.5c-.6-.8-.6-1.7 0-2.5M12 5.5c-.6-.8-.6-1.7 0-2.5M15 5.5c-.6-.8-.6-1.7 0-2.5"/></symbol>
+    <symbol id="c-drumstick" viewBox="0 0 24 24"><path d="M10.5 13.5c-2.5-2.5-2.5-6 0-8.5s6-2.5 8.5 0 2.5 6 0 8.5c-2 2-4.8 2.4-6.8 1.4L9 18a2 2 0 1 1-2.5 2.5A2 2 0 1 1 6 16l3-3c.4.2.9.4 1.5.5z"/></symbol>
+    <symbol id="c-fish" viewBox="0 0 24 24"><path d="M2.5 12c3-5 9-7 14-3l4.5-3v12l-4.5-3c-5 4-11 2-14-3z"/><path d="M7 11.2v.1"/></symbol>
+    <symbol id="c-egg" viewBox="0 0 24 24"><path d="M12 3c-3.5 0-6.5 5.5-6.5 10a6.5 6.5 0 0 0 13 0C18.5 8.5 15.5 3 12 3z"/></symbol>
+    <symbol id="c-cheese" viewBox="0 0 24 24"><path d="M3 17 18 7l3 4v6zM3 17h18"/><circle cx="10" cy="14.5" r="1"/><circle cx="16" cy="14" r="1.3"/></symbol>
+    <symbol id="c-carrot" viewBox="0 0 24 24"><path d="M15.5 8.5c-2-2-5 0-6.5 2.5L3 21l10-6c2.5-1.5 4.5-4.5 2.5-6.5z"/><path d="M15.5 8.5 19 5M16 3c-.5 2 .5 4 2 5M21 8c-2 .5-4-.5-5-2M8 14l1.5 1.5M11 11.5l1 1"/></symbol>
+    <symbol id="c-leaf" viewBox="0 0 24 24"><path d="M5 19C5 10 10 5 20 4c-1 10-6 15-15 15z"/><path d="m5 19 8-8"/></symbol>
+    <symbol id="c-apple" viewBox="0 0 24 24"><path d="M12 7.5c-1.5-1-5-1.5-6.5 1.5S5 16 7 19s3.5 2 5 1c1.5 1 3 2 5-1s3-7.5 1.5-10.5S13.5 6.5 12 7.5z"/><path d="M12 7.5c0-2 1-3.5 3-4.5"/></symbol>
+    <symbol id="c-lemon" viewBox="0 0 24 24"><path d="M20 4c-1 0-1.5.5-2 1A8 8 0 0 0 5 18c-.5.5-1 1-1 2 1 0 1.5-.5 2-1A8 8 0 0 0 19 6c.5-.5 1-1 1-2z"/></symbol>
+    <symbol id="c-cherry" viewBox="0 0 24 24"><circle cx="7" cy="17" r="4"/><circle cx="17" cy="16" r="4"/><path d="M7 13c1-5 4-8 9-10M17 12c-.5-4-1.5-7-1-9"/></symbol>
+    <symbol id="c-cupcake" viewBox="0 0 24 24"><path d="M5 12h14l-2 9H7z"/><path d="M5 12a3 3 0 0 1 1-5.5A4 4 0 0 1 12 4a4 4 0 0 1 6 2.5 3 3 0 0 1 1 5.5M10 12l.5 9M14 12l-.5 9"/></symbol>
+    <symbol id="c-pie" viewBox="0 0 24 24"><path d="M3 13h18l-1.5 5a2 2 0 0 1-2 1.5h-11a2 2 0 0 1-2-1.5z"/><path d="M4 13c1-4 4.5-6 8-6s7 2 8 6M9 10l1 1.5M14.5 9.5 14 11"/></symbol>
+    <symbol id="c-cookie" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9h.01M14.5 10h.01M10 15h.01M15 15h.01"/></symbol>
+    <symbol id="c-icecream" viewBox="0 0 24 24"><path d="M6.5 11h11L12 22z"/><path d="M6.5 11a5.5 5.5 0 0 1 11 0"/></symbol>
+    <symbol id="c-wine" viewBox="0 0 24 24"><path d="M8 3h8l-.5 5a3.5 3.5 0 0 1-7 0zM12 11.5V20M8 21h8"/></symbol>
+    <symbol id="c-bottle" viewBox="0 0 24 24"><path d="M9 2h6v3l2 3v13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V8l2-3z"/><path d="M7 12h10"/></symbol>
+    <symbol id="c-snow" viewBox="0 0 24 24"><path d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M9 4l3 2 3-2M9 20l3-2 3 2"/></symbol>
+    <symbol id="c-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v9h14v-9M12 8v13M12 8c-1.5-3-5-4-5.5-2S9 8 12 8zM12 8c1.5-3 5-4 5.5-2S15 8 12 8z"/></symbol>
+    <symbol id="c-heart" viewBox="0 0 24 24"><path d="M12 20s-8-4.6-8-10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 2.5C20 15.4 12 20 12 20z"/></symbol>
+    <symbol id="c-chef" viewBox="0 0 24 24"><path d="M7 14v6h10v-6M7 14a4 4 0 0 1-1-7.8A5 5 0 0 1 12 3a5 5 0 0 1 6 3.2A4 4 0 0 1 17 14zM7 17h10"/></symbol>
   </defs>
 </svg>
 <!--/APP-->

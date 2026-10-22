@@ -29,7 +29,9 @@ PWA estático (HTML + CSS + JS puro, sem build, sem framework, sem backend). Liv
 
 `{ v:1, recipes:{ [id]: recipe }, cats:{ list:[...], updatedAt } }`
 
-Receita: `id, title, category, ingredients[], steps[], videoUrl, timeMin, servings, calories, tags[], notes, fav, photos[{id,w,h,caption,addedAt,driveId}], createdAt, updatedAt`
+Receita: `id, title, category, icon, cover{id,w,h,addedAt,driveId}|null, ingredients[], steps[], videoUrl, timeMin, servings, calories, tags[], notes, fav, photos[{id,w,h,caption,addedAt,driveId}], createdAt, updatedAt`
+
+Categoria: `{id, name, color:k1..k8, icon}`. Ícones disponíveis em `ICON_NAMES` (`app.js`), desenhados como `<symbol id="c-…">` no `index.html`. Receita sem `icon` usa o da categoria; sem `cover`, o cartão mostra o ícone. A capa vai para o Drive junto com as fotos do álbum.
 
 Merge: vence o `updatedAt` mais recente por receita; categorias por `cats.updatedAt`.
 

@@ -3,7 +3,7 @@
  * Sincronização: mescla por receita usando updatedAt; exclusões viram "lápides" para não ressuscitar receitas. */
 "use strict";
 
-const APP_VERSION = "1.4.1";
+const APP_VERSION = "1.5.0";
 const CFG = Object.assign({ GOOGLE_CLIENT_ID: "", DRIVE_FILE_NAME: "Fichário de Receitas (dados).json" }, window.FICHARIO_CONFIG || {});
 const DRIVE_ON = !!CFG.GOOGLE_CLIENT_ID;
 const SCOPES = "openid email https://www.googleapis.com/auth/drive.file";
@@ -70,6 +70,7 @@ async function upsertRecipe(rec) { data.recipes[rec.id] = rec; await persist(); 
 async function removeRecipe(id) {
   const r = data.recipes[id];
   if (r && r.photos) await discardPhotos(r.photos);
+  if (r && r.cover) await discardPhotos([r.cover]);
   data.recipes[id] = { id, deleted: true, updatedAt: Date.now() }; await persist();
 }
 
@@ -112,6 +113,15 @@ function hydratePhotos(root, rec) {
     const img = el.querySelector("img");
     if (url && img) { img.src = url; el.classList.remove("missing"); }
     else el.classList.add("missing");
+  });
+}
+// preenche as capas (<img> dentro de [data-cover="idDaReceita"]); sem foto, fica o ícone por baixo
+function hydrateCovers(root) {
+  root.querySelectorAll("[data-cover]").forEach(async el => {
+    const r = data.recipes[el.dataset.cover], img = el.querySelector("img");
+    if (!r || !r.cover || !img) return;
+    const url = await photoURL(r.cover);
+    if (url) img.src = url;
   });
 }
 async function setCats(list) { data.cats = { list, updatedAt: Date.now() }; await persist(); }
@@ -248,7 +258,7 @@ async function uploadPhoto(blob, name, folder) {
 }
 async function syncPhotos() {
   // envia fotos novas
-  const pending = live().flatMap(r => (r.photos || []).filter(p => !p.driveId).map(p => [r, p]));
+  const pending = live().flatMap(r => [...(r.photos || []), ...(r.cover ? [r.cover] : [])].filter(p => !p.driveId).map(p => [r, p]));
   if (pending.length) {
     const folder = await ensurePhotoFolder();
     const touched = new Set();
@@ -346,9 +356,21 @@ function toast(msg) {
 
 /* ======================= ícones ======================= */
 const ico = (id, cls = "") => `<svg class="i ${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
-const CAT_ICONS = ["c-cake", "c-sandwich", "c-plate", "c-dumbbell", "c-cup", "c-salad", "c-soup", "c-bread", "c-book"];
+const ICON_NAMES = {
+  "c-cake": "bolo", "c-cupcake": "cupcake", "c-pie": "torta", "c-cookie": "biscoito", "c-icecream": "sorvete", "c-gift": "festa",
+  "c-sandwich": "lanche", "c-bread": "pão", "c-pizza": "pizza", "c-egg": "ovo", "c-cheese": "queijo",
+  "c-plate": "prato", "c-pot": "panela", "c-pasta": "massa", "c-soup": "sopa", "c-grill": "churrasco", "c-drumstick": "frango", "c-fish": "peixe",
+  "c-salad": "salada", "c-leaf": "folha", "c-carrot": "cenoura", "c-apple": "maçã", "c-lemon": "limão", "c-cherry": "cereja",
+  "c-cup": "xícara", "c-bottle": "garrafa", "c-wine": "taça", "c-snow": "congelado",
+  "c-dumbbell": "fitness", "c-heart": "coração", "c-chef": "chef", "c-book": "livro",
+};
+const CAT_ICONS = Object.keys(ICON_NAMES);
 const ICON_BY_ID = { doce: "c-cake", lanche: "c-sandwich", refeicao: "c-plate", fitness: "c-dumbbell", bebida: "c-cup" };
 const catIcon = c => (c && c.icon) || ICON_BY_ID[c && c.id] || "c-book";
+const recIcon = r => (r.icon && ICON_NAMES[r.icon] ? r.icon : catIcon(catOf(r.category)));
+// seletores de cor e de ícone (botões com aria-pressed; o atributo data-* diz o que foi escolhido)
+const colorPick = sel => `<div class="pickrow" role="group" aria-label="Cor">${COLORS.map(k => `<button type="button" class="swatch" style="--kfg:var(--${k})" data-color="${k}" aria-label="Cor ${k.slice(1)}" aria-pressed="${k === sel}"></button>`).join("")}</div>`;
+const iconPick = (attr, sel, first = "") => `<div class="pickrow" role="group" aria-label="Ícone">${first}${CAT_ICONS.map(k => `<button type="button" class="icopt" data-${attr}="${k}" aria-label="Ícone ${ICON_NAMES[k]}" aria-pressed="${k === sel}">${ico(k)}</button>`).join("")}</div>`;
 
 /* ======================= busca ======================= */
 function matches(r) {
@@ -389,7 +411,7 @@ function cardHTML(r, withCat) {
     (r.photos || []).length && `<span>${ico("i-camera", "sm")}${r.photos.length}</span>`,
   ].filter(Boolean).join("");
   return `<button class="card" data-id="${esc(r.id)}" style="${kstyle(c)}">
-    <div class="cover"><span class="deco" aria-hidden="true"></span>${ico(catIcon(c))}
+    <div class="cover${r.cover ? " has-photo" : ""}"${r.cover ? ` data-cover="${esc(r.id)}"` : ""}><span class="deco" aria-hidden="true"></span>${ico(recIcon(r))}${r.cover ? `<img alt="" loading="lazy">` : ""}
       ${r.fav ? `<span class="star" aria-label="Favorita">${ico("i-star")}</span>` : ""}
       ${withCat ? `<span class="cat">${esc(c.name)}</span>` : ""}</div>
     <div class="card-body">
@@ -418,6 +440,7 @@ function render() {
   document.body.dataset.screen = UI.cat ? "cat" : favView ? "fav" : "home";
   document.body.setAttribute("style", UI.cat ? kstyle(catOf(UI.cat)) : "");
   $("#back").hidden = !UI.cat;
+  $("#cat-edit").hidden = !(UI.cat && cats().some(c => c.id === UI.cat));
   const nShown = UI.cat ? all.filter(r => r.category === UI.cat).length : favView ? all.filter(r => r.fav).length : all.length;
   $("#count").textContent = `${nShown} ${nShown === 1 ? "receita" : "receitas"}${UI.cat || favView ? "" : nShown === 1 ? " guardada" : " guardadas"}`;
   document.querySelectorAll(".tab[data-view]").forEach(t => t.dataset.view === UI.view ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current"));
@@ -449,6 +472,7 @@ function render() {
       (list.length ? `<div class="grid">${list.map(r => cardHTML(r, !UI.cat)).join("")}</div>`
         : `<div class="state"><div class="ic-tile">${ico(favView && !searching ? "i-star" : "i-search", "lg")}</div><p>${empty}</p>
            ${UI.cat && !searching ? `<button class="btn primary" data-addcat="${esc(UI.cat)}">${ico("i-plus")}Adicionar receita</button>` : ""}</div>`);
+    hydrateCovers(main);
     return;
   }
 
@@ -567,6 +591,7 @@ function showRecipe(id) {
   const ing = r.ingredients || [];
   openSheet(r.title, `
     <div class="d-hero" style="${kstyle(c)}">
+      ${r.cover ? `<div class="d-cover" data-cover="${esc(r.id)}"><img alt="Foto de capa: ${esc(r.title)}"></div>` : `<span class="d-wm" aria-hidden="true">${ico(recIcon(r))}</span>`}
       <div class="top">
         <span class="catlabel">${ico(catIcon(c), "sm")}${esc(c.name)}</span>
         <div class="acts">
@@ -598,6 +623,7 @@ function showRecipe(id) {
   `, sheet => {
     sheet.setAttribute("style", kstyle(c));
     hydratePhotos(sheet, r);
+    hydrateCovers(sheet);
     sheet.querySelectorAll("[data-open]").forEach(b => b.onclick = () => openLightbox(r, +b.dataset.open));
     sheet.querySelectorAll(".checklist input").forEach(cb => cb.onchange = () => {
       $("#ing-n", sheet).textContent = `${sheet.querySelectorAll(".checklist input:checked").length} de ${ing.length}`;
@@ -627,6 +653,10 @@ function showForm(r, presetCat) {
   let cat = r.category;
   let newColor = COLORS.find(k => !cats().some(c => c.color === k)) || "k5";
   let newIcon = CAT_ICONS.find(k => !cats().some(c => catIcon(c) === k)) || "c-book";
+  let ricon = r.icon && ICON_NAMES[r.icon] ? r.icon : "";
+  const origCover = r.cover || null;
+  let cover = origCover && { ...origCover }, coverNew = null; // coverNew: foto escolhida agora, ainda não salva
+  const autoIconBtn = () => `<button type="button" class="icopt auto" data-ricon="" aria-label="Usar o ícone da categoria" aria-pressed="${!ricon}">${ico(catIcon(catOf(cat)))}<span>Da categoria</span></button>`;
   const draftKey = "fichario.draft";
   const catsHTML = () => cats().map(c => `<button type="button" class="cat-opt" style="${kstyle(c)}" data-cat="${esc(c.id)}" aria-pressed="${c.id === cat}">${ico(catIcon(c), "sm")}${esc(c.name)}</button>`).join("") +
     `<button type="button" class="cat-opt cat-new" id="f-newcat-btn">${ico("i-plus", "sm")}Nova</button>`;
@@ -637,10 +667,17 @@ function showForm(r, presetCat) {
       <div class="group" id="w-cat"><span class="lbl">Categoria</span><div class="cats" id="f-cats">${catsHTML()}</div>
         <div class="newcat" id="f-newcat" hidden>
           <input id="f-newcat-name" maxlength="30" placeholder="Nome da nova categoria" aria-label="Nome da nova categoria">
-          <div class="pickrow" role="group" aria-label="Cor">${COLORS.map(k => `<button type="button" class="swatch" style="--kfg:var(--${k})" data-color="${k}" aria-label="Cor ${k.slice(1)}" aria-pressed="${k === newColor}"></button>`).join("")}</div>
-          <div class="pickrow" role="group" aria-label="Ícone">${CAT_ICONS.map(k => `<button type="button" class="icopt" data-icon="${k}" aria-label="Ícone ${k.slice(2)}" aria-pressed="${k === newIcon}">${ico(k)}</button>`).join("")}</div>
+          ${colorPick(newColor)}
+          ${iconPick("icon", newIcon)}
           <div class="row"><button type="button" class="btn" id="f-newcat-cancel">Cancelar</button><button type="button" class="btn primary" id="f-newcat-save" style="flex:1">Criar categoria</button></div>
         </div></div>
+      <div class="group" id="w-cover"><span class="lbl">Foto de capa (opcional)</span>
+        <div class="cover cover-edit" id="f-cover"></div>
+        <div class="row"><label class="btn tonal add-cover" for="f-cover-file" style="flex:1">${ico("i-camera")}<span>Escolher foto</span></label><button type="button" class="btn danger" id="f-cover-del" hidden>Remover</button></div>
+        <input type="file" id="f-cover-file" accept="image/*" hidden>
+        <small class="small">Sem foto, a receita mostra o ícone escolhido abaixo.</small></div>
+      <div class="group" id="w-icon"><span class="lbl">Ícone da receita</span>
+        ${iconPick("ricon", ricon, autoIconBtn())}</div>
       <div class="field" id="w-ing"><label for="f-ing">Ingredientes</label>
         <textarea id="f-ing" placeholder="3 cenouras médias&#10;3 ovos&#10;2 xícaras de farinha">${esc((r.ingredients || []).join("\n"))}</textarea>
         <small>Um por linha. Pode colar uma lista pronta.</small></div>
@@ -660,7 +697,7 @@ function showForm(r, presetCat) {
         <div class="album edit" id="f-album"></div>
         <label class="btn tonal block add-photo" for="f-photos">${ico("i-camera")}Adicionar fotos</label>
         <input type="file" id="f-photos" accept="image/*" multiple hidden>
-        <small class="small">Fotos do passo a passo, do ponto da massa, do prato pronto. Não viram capa da receita.</small></div>
+        <small class="small">Fotos do passo a passo, do ponto da massa, do prato pronto. A capa é escolhida lá em cima.</small></div>
       <div class="field"><label for="f-notes">Observações (opcional)</label><textarea id="f-notes" style="min-height:76px" placeholder="Dicas, substituições, de onde veio a receita">${esc(r.notes)}</textarea></div>
       <p class="err" id="f-err" hidden></p>
       <div class="sticky-actions"><button type="button" class="btn" data-close>Cancelar</button><button class="btn primary" id="f-save">Salvar receita</button></div>
@@ -674,6 +711,7 @@ function showForm(r, presetCat) {
       const w = e.target.closest(".field"); if (w && w.classList.contains("invalid")) { w.classList.remove("invalid"); const fe = w.querySelector(".ferr"); fe && fe.remove(); }
       if (isNew) { try { localStorage.setItem(draftKey, JSON.stringify({ title: $("#f-title", sheet).value, ing: $("#f-ing", sheet).value, steps: $("#f-steps", sheet).value })); } catch (_) {} }
     });
+    const pick = (attr, set) => sheet.querySelectorAll(`[data-${attr}]`).forEach(b => b.onclick = () => { set(b.dataset[attr]); sheet.querySelectorAll(`[data-${attr}]`).forEach(x => x.setAttribute("aria-pressed", x === b)); });
     // álbum no formulário
     const drawAlbum = () => {
       const box = $("#f-album", sheet);
@@ -711,14 +749,40 @@ function showForm(r, presetCat) {
       drawAlbum();
       if (fail) toast(fail === files.length ? "Não deu para abrir essas imagens." : `${fail} imagem(ns) não puderam ser abertas.`);
     };
+    // capa: mostra a foto ou, sem ela, o ícone da receita na cor da categoria
+    const drawCover = async () => {
+      const box = $("#f-cover", sheet);
+      box.setAttribute("style", kstyle(catOf(cat)));
+      box.innerHTML = `<span class="deco" aria-hidden="true"></span>${ico(ricon || catIcon(catOf(cat)))}${cover ? `<img alt="Foto de capa">` : ""}`;
+      $("#f-cover-del", sheet).hidden = !cover;
+      $(".add-cover span", sheet).textContent = cover ? "Trocar foto" : "Escolher foto";
+      if (cover) { const url = await photoURL(cover); const img = $("img", box); if (url && img) img.src = url; }
+    };
+    drawCover();
+    $("#f-cover-file", sheet).onchange = async e => {
+      const f = e.target.files[0]; e.target.value = "";
+      if (!f || !f.type.startsWith("image/")) return;
+      const lbl = $(".add-cover", sheet); lbl.classList.add("busy"); $("span", lbl).textContent = "Preparando foto…";
+      try {
+        const { blob, w, h } = await compressImage(f);
+        const id = uid(); await Store.photoPut(id, blob);
+        if (coverNew) Store.photoDel(coverNew);
+        cover = { id, w, h, addedAt: Date.now() }; coverNew = id;
+      } catch (err) { toast("Não deu para abrir essa imagem."); }
+      lbl.classList.remove("busy"); drawCover();
+    };
+    $("#f-cover-del", sheet).onclick = () => { if (coverNew) { Store.photoDel(coverNew); coverNew = null; } cover = null; drawCover(); };
+    pick("ricon", v => { ricon = v; drawCover(); });
     // cancelou o cadastro: apaga as fotos novas que não foram usadas
-    onSheetClose = () => { if (!saved) album.added.forEach(id => Store.photoDel(id)); };
+    onSheetClose = () => { if (!saved) { album.added.forEach(id => Store.photoDel(id)); if (coverNew) Store.photoDel(coverNew); } };
     const wireCats = () => {
-      sheet.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => { cat = b.dataset.cat; sheet.querySelectorAll("[data-cat]").forEach(x => x.setAttribute("aria-pressed", x.dataset.cat === cat)); });
+      sheet.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => {
+        cat = b.dataset.cat; sheet.querySelectorAll("[data-cat]").forEach(x => x.setAttribute("aria-pressed", x.dataset.cat === cat));
+        $(".icopt.auto", sheet).innerHTML = `${ico(catIcon(catOf(cat)))}<span>Da categoria</span>`; drawCover();
+      });
       $("#f-newcat-btn", sheet).onclick = () => { $("#f-newcat", sheet).hidden = false; $("#f-newcat-name", sheet).focus(); };
     };
     wireCats();
-    const pick = (attr, set) => sheet.querySelectorAll(`[data-${attr}]`).forEach(b => b.onclick = () => { set(b.dataset[attr]); sheet.querySelectorAll(`[data-${attr}]`).forEach(x => x.setAttribute("aria-pressed", x === b)); });
     pick("color", v => newColor = v); pick("icon", v => newIcon = v);
     $("#f-newcat-cancel", sheet).onclick = () => { $("#f-newcat", sheet).hidden = true; };
     $("#f-newcat-save", sheet).onclick = async () => {
@@ -728,11 +792,13 @@ function showForm(r, presetCat) {
       while (cats().some(c => c.id === id)) id += "-2";
       await setCats([...cats(), { id, name, color: newColor, icon: newIcon }]);
       cat = id; $("#f-cats", sheet).innerHTML = catsHTML(); wireCats();
+      $(".icopt.auto", sheet).innerHTML = `${ico(catIcon(catOf(cat)))}<span>Da categoria</span>`; drawCover();
       $("#f-newcat", sheet).hidden = true; $("#f-newcat-name", sheet).value = "";
     };
     const fieldErr = (wid, msg) => { const w = $("#" + wid, sheet); if (!w) return; w.classList.add("invalid"); if (!w.querySelector(".ferr")) w.insertAdjacentHTML("beforeend", `<span class="ferr">${msg}</span>`); };
     $("#f", sheet).onsubmit = async e => {
       e.preventDefault();
+      if ($(".busy", sheet)) { toast("Espere a foto terminar de carregar."); return; }
       const err = $("#f-err", sheet); err.hidden = true;
       const num = id => { const v = parseInt($(id, sheet).value, 10); return Number.isFinite(v) && v > 0 ? v : null; };
       const now = Date.now();
@@ -746,6 +812,8 @@ function showForm(r, presetCat) {
         videoUrl: $("#f-video", sheet).value.trim(),
         tags: [...new Set($("#f-tags", sheet).value.split(",").map(s => s.trim()).filter(Boolean))],
         photos: album.photos,
+        cover: cover || null,
+        icon: ricon,
         notes: $("#f-notes", sheet).value.trim(),
         fav: !!r.fav, createdAt: r.createdAt || now, updatedAt: now,
       };
@@ -760,9 +828,38 @@ function showForm(r, presetCat) {
       if (dupe && !err.dataset.dupeOk) { err.textContent = `Já existe “${dupe.title}”. Toque em salvar de novo para guardar mesmo assim.`; err.hidden = false; err.dataset.dupeOk = "1"; err.scrollIntoView({ block: "nearest" }); return; }
       saved = true;
       await discardPhotos(album.removed);
+      if (origCover && (!cover || cover.id !== origCover.id)) await discardPhotos([origCover]);
       await upsertRecipe(rec);
       if (isNew) { try { localStorage.removeItem(draftKey); } catch (_) {} }
       closeSheet(); toast(isNew ? "Receita salva" : "Alterações salvas");
+    };
+  });
+}
+
+function showCatEdit(id, after) {
+  const c = cats().find(x => x.id === id); if (!c) return;
+  let color = c.color, icon = catIcon(c);
+  openSheet("Editar categoria", `
+    <div class="field" id="ce-w-name"><label for="ce-name">Nome</label><input id="ce-name" maxlength="30" value="${esc(c.name)}" autocapitalize="sentences"></div>
+    <div class="group"><span class="lbl">Cor</span>${colorPick(color)}</div>
+    <div class="group"><span class="lbl">Ícone</span>${iconPick("icon", icon)}</div>
+    <div class="catbar ce-preview" id="ce-prev" aria-hidden="true"></div>
+    <div class="actions"><button type="button" class="btn" data-close>Cancelar</button><button type="button" class="btn primary" id="ce-save" style="flex:1">Salvar</button></div>
+  `, sheet => {
+    const prev = () => {
+      const el = $("#ce-prev", sheet); el.setAttribute("style", kstyle({ color }));
+      el.innerHTML = `<span class="ic-tile">${ico(icon, "lg")}</span><span class="grow"><span class="name">${esc($("#ce-name", sheet).value.trim() || c.name)}</span></span><span class="wm">${ico(icon)}</span>`;
+    };
+    const pick = (attr, set) => sheet.querySelectorAll(`[data-${attr}]`).forEach(b => b.onclick = () => { set(b.dataset[attr]); sheet.querySelectorAll(`[data-${attr}]`).forEach(x => x.setAttribute("aria-pressed", x === b)); prev(); });
+    pick("color", v => color = v); pick("icon", v => icon = v);
+    $("#ce-name", sheet).oninput = prev; prev();
+    $("#ce-save", sheet).onclick = async () => {
+      const name = $("#ce-name", sheet).value.trim();
+      if (!name) { $("#ce-name", sheet).focus(); return; }
+      if (cats().some(x => x.id !== id && norm(x.name) === norm(name))) { toast("Já existe uma categoria com esse nome."); return; }
+      await setCats(cats().map(x => x.id === id ? { ...x, name, color, icon } : x));
+      if (after) reopen(after); else closeSheet();
+      toast("Categoria atualizada");
     };
   });
 }
@@ -823,10 +920,10 @@ function showSettings() {
         <div class="catrow" data-row="${esc(c.id)}" style="${kstyle(c)}">
           <span class="ic-tile">${ico(catIcon(c), "sm")}</span>
           <span class="name">${esc(c.name)}<small>${counts[c.id] || 0} receita${counts[c.id] === 1 ? "" : "s"}</small></span>
-          <button class="iconbtn plain" data-ren="${esc(c.id)}" aria-label="Renomear ${esc(c.name)}">${ico("i-edit")}</button>
+          <button class="iconbtn plain" data-ren="${esc(c.id)}" aria-label="Editar ${esc(c.name)}">${ico("i-edit")}</button>
           <button class="iconbtn plain" data-delc="${esc(c.id)}" aria-label="Excluir ${esc(c.name)}" ${counts[c.id] ? "disabled style=\"opacity:.3\"" : ""}>${ico("i-trash")}</button>
         </div>`).join("")}</div>
-      <p class="small">Só dá para excluir categorias vazias. Crie novas no cadastro da receita.</p></div>
+      <p class="small">Toque no lápis para mudar nome, cor ou ícone. Só dá para excluir categorias vazias. Crie novas no cadastro da receita.</p></div>
     <div class="panel">${head("i-box", "Cópia de segurança")}
       <p class="small">Um arquivo com todas as receitas, para guardar onde quiser ou levar para outro aparelho.</p>
       <div class="row"><button class="btn" id="s-exp" style="flex:1">Exportar</button><label class="btn" for="s-imp-file" style="flex:1">Importar</label><input type="file" id="s-imp-file" accept="application/json,.json" hidden></div></div>
@@ -852,15 +949,7 @@ function showSettings() {
       try { const m = mergeData(data, fromFile(await f.text())); data = m.data; await persist(); closeSheet(); toast("Receitas importadas"); }
       catch (err) { toast("Esse arquivo não é uma cópia do Fichário."); }
     };
-    sheet.querySelectorAll("[data-ren]").forEach(b => b.onclick = () => {
-      const id = b.dataset.ren, c = catOf(id), row = sheet.querySelector(`[data-row="${CSS.escape(id)}"]`);
-      row.innerHTML = `<span class="ic-tile">${ico(catIcon(c), "sm")}</span><input value="${esc(c.name)}" maxlength="30" aria-label="Novo nome da categoria"><button class="btn primary" data-ok>Salvar</button>`;
-      const inp = row.querySelector("input"); inp.focus(); inp.select();
-      row.querySelector("[data-ok]").onclick = async () => {
-        const name = inp.value.trim(); if (!name) return;
-        await setCats(cats().map(x => x.id === id ? { ...x, name } : x)); reopen(showSettings);
-      };
-    });
+    sheet.querySelectorAll("[data-ren]").forEach(b => b.onclick = () => reopen(() => showCatEdit(b.dataset.ren, showSettings)));
     sheet.querySelectorAll("[data-delc]").forEach(b => b.onclick = async () => {
       if (cats().length <= 1) { toast("Mantenha pelo menos uma categoria."); return; }
       await setCats(cats().filter(x => x.id !== b.dataset.delc)); if (UI.cat === b.dataset.delc) UI.cat = ""; reopen(showSettings);
@@ -902,6 +991,7 @@ document.querySelectorAll(".tab[data-view]").forEach(t => t.onclick = () => {
   render(); scrollTo({ top: 0, behavior: "smooth" });
 });
 $("#back").onclick = closeCat;
+$("#cat-edit").onclick = () => showCatEdit(UI.cat);
 $("#tab-search").onclick = () => { scrollTo({ top: 0 }); $("#q").focus(); };
 $("#tab-settings").onclick = showSettings;
 $("#fab").onclick = () => showForm(null);
