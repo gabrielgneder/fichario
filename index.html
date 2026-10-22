@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fichário de Receitas</title>
+<meta name="description" content="Seu livro de receitas no celular, com cópia no Google Drive.">
+<meta name="theme-color" content="#f6f6f3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111312" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Receitas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!--APP-->
+<header class="top">
+  <div class="wrap">
+    <div class="titlebar">
+      <div class="title-left">
+        <button class="iconbtn back" id="back" aria-label="Voltar para as categorias" hidden><svg class="i" aria-hidden="true"><use href="#i-back"/></svg></button>
+        <div>
+        <h1 id="view-title">Receitas</h1>
+        <p class="sub" id="count"></p>
+        </div>
+      </div>
+      <button class="sync" id="sync" data-state="off" hidden></button>
+    </div>
+    <div class="search">
+      <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
+      <input id="q" type="search" placeholder="Buscar receita ou ingrediente" autocomplete="off" enterkeyhint="search" aria-label="Buscar receita ou ingrediente">
+      <button class="clear" id="q-clear" aria-label="Limpar busca" hidden><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modes" id="modes" role="group" aria-label="Onde buscar" hidden>
+      <button data-mode="all" aria-pressed="true">Tudo</button>
+      <button data-mode="name" aria-pressed="false">Só nome</button>
+      <button data-mode="have" aria-pressed="false">Tenho em casa</button>
+    </div>
+    <p class="hint" id="hint" hidden>Separe por vírgula, ex.: <b>ovo, banana, aveia</b>. Mostra o que dá para fazer com todos.</p>
+    <div class="chips" id="catchips" role="group" aria-label="Filtrar por categoria"></div>
+  </div>
+</header>
+
+<main class="wrap" id="main">
+  <div class="state"><h2>Abrindo o fichário…</h2></div>
+</main>
+
+<nav class="tabbar" aria-label="Navegação">
+  <div class="in">
+    <button class="tab" data-view="home" aria-current="page"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg>Início</button>
+    <button class="tab" data-view="fav"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg>Favoritas</button>
+    <button class="fab" id="fab" aria-label="Nova receita"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg></button>
+    <button class="tab" id="tab-search"><svg class="i" aria-hidden="true"><use href="#i-search"/></svg>Buscar</button>
+    <button class="tab" id="tab-settings"><svg class="i" aria-hidden="true"><use href="#i-settings"/></svg>Ajustes</button>
+  </div>
+</nav>
+
+<div id="layer"></div>
+
+<!-- ícones (traço 2px, estilo Lucide) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 22c4 0 7-2.7 7-6.8 0-3.6-2.4-6-4.2-8.2-.4 2-1.4 3.2-2.8 3.7C12.5 7.6 11.2 4.6 8.5 2 8.6 6 5 8.6 5 15.2 5 19.3 8 22 12 22z"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14a6.5 6.5 0 0 1 3 6"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m10 8.5 5.5 3.5-5.5 3.5z"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 8.5a4.5 4.5 0 0 1-.5 9.5z"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></symbol>
+    <symbol id="i-tags" viewBox="0 0 24 24"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2.5h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></symbol>
+    <!-- categorias -->
+    <symbol id="c-cake" viewBox="0 0 24 24"><path d="M4 21v-7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7M3 21h18M4 16c1.5 1.3 3 1.3 4 0 1.5 1.3 3 1.3 4 0 1.5 1.3 3 1.3 4 0 1 1.3 2.5 1.3 4 0M8 12V9M12 12V9M16 12V9M8 6.5v-1M12 6.5v-1M16 6.5v-1"/></symbol>
+    <symbol id="c-sandwich" viewBox="0 0 24 24"><path d="M3 11c0-4 4-7 9-7s9 3 9 7zM3 14.5h18M4.5 18h15a1.5 1.5 0 0 1-1.5 2H6a1.5 1.5 0 0 1-1.5-2z"/></symbol>
+    <symbol id="c-plate" viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><circle cx="12" cy="13" r="3.5"/><path d="M3 3v5a1.5 1.5 0 0 0 3 0V3M4.5 8v13M21 3c-1.7 0-3 2-3 5s1 3 3 3v10"/></symbol>
+    <symbol id="c-dumbbell" viewBox="0 0 24 24"><path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/><rect x="5" y="6" width="3" height="12" rx="1"/><rect x="16" y="6" width="3" height="12" rx="1"/></symbol>
+    <symbol id="c-cup" viewBox="0 0 24 24"><path d="M5 8h12v7a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5zM17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 2.5c-.6.8-.6 1.7 0 2.5M12 2.5c-.6.8-.6 1.7 0 2.5"/></symbol>
+    <symbol id="c-salad" viewBox="0 0 24 24"><path d="M3 12h18a9 9 0 0 1-18 0zM8 12c0-3 1.5-5 4-6M12 12c0-2.5 1.5-4.5 4.5-5M14 6c1-1.5 2.5-2.5 4.5-2.5"/></symbol>
+    <symbol id="c-soup" viewBox="0 0 24 24"><path d="M3 12h18a8 8 0 0 1-8 8h-2a8 8 0 0 1-8-8zM7 21h10M9 4c-.8 1.2-.8 2.8 0 4M13 4c-.8 1.2-.8 2.8 0 4M17 4c-.8 1.2-.8 2.8 0 4"/></symbol>
+    <symbol id="c-bread" viewBox="0 0 24 24"><path d="M5 20V11a4 4 0 0 1-1-7.5C5 3 7 3 12 3s7 0 8 .5a4 4 0 0 1-1 7.5v9z"/><path d="M9 9l2 2M13 7l2 2"/></symbol>
+    <symbol id="c-book" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></symbol>
+  </defs>
+</svg>
+<!--/APP-->
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
