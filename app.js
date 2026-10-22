@@ -3,7 +3,7 @@
  * Sincronização: mescla por receita usando updatedAt; exclusões viram "lápides" para não ressuscitar receitas. */
 "use strict";
 
-const APP_VERSION = "1.3.0";
+const APP_VERSION = "1.4.0";
 const CFG = Object.assign({ GOOGLE_CLIENT_ID: "", DRIVE_FILE_NAME: "Fichário de Receitas (dados).json" }, window.FICHARIO_CONFIG || {});
 const DRIVE_ON = !!CFG.GOOGLE_CLIENT_ID;
 const SCOPES = "openid email https://www.googleapis.com/auth/drive.file";
@@ -767,6 +767,23 @@ function showForm(r, presetCat) {
   });
 }
 
+/* tema (dia / noite / automático) — preferência do aparelho, fica só no navegador */
+const THEME_KEY = "fichario-tema";
+const getTheme = () => { try { const t = localStorage.getItem(THEME_KEY); return t === "light" || t === "dark" ? t : "auto"; } catch (e) { return "auto"; } };
+function applyTheme(t) {
+  const root = document.documentElement;
+  if (t === "auto") delete root.dataset.theme; else root.dataset.theme = t;
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
+    const dark = t === "auto" ? /dark/.test(m.media) : t === "dark";
+    m.content = dark ? "#111312" : "#f6f6f3";
+  });
+}
+function setTheme(t) {
+  try { if (t === "auto") localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, t); } catch (e) {}
+  applyTheme(t);
+}
+applyTheme(getTheme());
+
 /* ajustes */
 let installEvt = null;
 addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; });
@@ -791,7 +808,14 @@ function showSettings() {
         : isIOS ? `<p>No Safari, toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>.</p>`
         : `<p>No Chrome, toque no menu <b>⋮</b> e depois em <b>Instalar app</b>.</p>`}</div>`;
 
+  const theme = getTheme();
+  const themePanel = `<div class="panel">${head("i-sun", "Aparência")}
+      <div class="modes" role="group" aria-label="Cores do app">${[["light", "Dia"], ["dark", "Noite"], ["auto", "Automático"]].map(([k, t]) =>
+        `<button data-theme-opt="${k}" aria-pressed="${k === theme}">${t}</button>`).join("")}</div>
+      <p class="small">No automático, segue o modo claro ou escuro do celular.</p></div>`;
+
   openSheet("Ajustes", `
+    ${themePanel}
     ${drivePanel}
     ${installPanel}
     <div class="panel">${head("i-tags", "Categorias")}
@@ -819,6 +843,10 @@ function showSettings() {
     });
     on("#s-install", async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice; installEvt = null; closeSheet(); });
     on("#s-exp", exportBackup);
+    sheet.querySelectorAll("[data-theme-opt]").forEach(b => b.onclick = () => {
+      setTheme(b.dataset.themeOpt);
+      sheet.querySelectorAll("[data-theme-opt]").forEach(x => x.setAttribute("aria-pressed", x === b));
+    });
     $("#s-imp-file", sheet).onchange = async e => {
       const f = e.target.files[0]; if (!f) return;
       try { const m = mergeData(data, fromFile(await f.text())); data = m.data; await persist(); closeSheet(); toast("Receitas importadas"); }
